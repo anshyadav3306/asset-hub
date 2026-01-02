@@ -60,7 +60,7 @@ export function SidebarNav({ onTabChange, activeTab, onCreateAsset, onAddUser }:
           <div className="p-6 flex items-center justify-between">
             <div className="flex items-center gap-2 font-bold text-xl text-primary">
               <Package className="h-6 w-6" />
-              <span>AssetFlow</span>
+              <span>AssetHub</span>
             </div>
             {/* Internal toggle button */}
             <Button variant="ghost" size="icon" onClick={toggleSidebar} className="text-muted-foreground">
