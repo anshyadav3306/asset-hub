@@ -17,11 +17,16 @@ export function AssetQRCode({ asset, open, onClose }: AssetQRCodeProps) {
   const [copied, setCopied] = useState(false)
   const [qrError, setQrError] = useState<string | null>(null)
 
-  const assetUrl = typeof window !== "undefined" ? `${window.location.origin}/asset-detail?id=${asset.id}` : ""
+  const publicBase = typeof process !== "undefined" ? (process.env.NEXT_PUBLIC_BASE_URL as string | undefined) : undefined
+  const origin = typeof window !== "undefined" ? window.location.origin : ""
+  const baseForLink = publicBase || (origin && !origin.includes("localhost") ? origin : undefined)
+
+  const assetUrl = baseForLink ? `${baseForLink.replace(/\/$/, "")}/asset-detail?id=${asset.id}` : ""
+  const qrValue = assetUrl || JSON.stringify({ id: asset.id, assetTag: asset.assetTag, name: asset.name, serialNumber: asset.serialNumber || "" })
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(assetUrl)
+      await navigator.clipboard.writeText(qrValue)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
@@ -103,7 +108,7 @@ export function AssetQRCode({ asset, open, onClose }: AssetQRCodeProps) {
                 <div className="flex h-64 w-64 items-center justify-center text-sm text-red-500">Error: {qrError}</div>
               ) : (
                 <div id={`qr-svg-${asset.id}`} className="flex items-center justify-center p-2">
-                  {assetUrl && <QRCode value={assetUrl} size={256} />}
+                  <QRCode value={qrValue} size={256} />
                 </div>
               )}
             </div>

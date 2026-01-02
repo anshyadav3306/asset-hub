@@ -8,6 +8,7 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import QRCode from "react-qr-code"
+import { api } from "@/lib/api"
 
 type Asset = {
   id: string
@@ -48,41 +49,23 @@ export default function AssetDetailPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Mock fetch - in production, fetch from Firebase
-    const mockAssets: Asset[] = [
-      {
-        id: "1",
-        assetTag: "LAPTOP-001",
-        name: "Dell XPS 15",
-        type: "hardware",
-        serialNumber: "DXP15-2024-001",
-        categoryName: "Laptops",
-        departmentName: "Engineering",
-        locationName: "Building A - Floor 3",
-        status: "available",
-        purchaseDate: "2024-01-15",
-        warrantyExpiry: "2027-01-15",
-        createdAt: "2024-01-15",
-      },
-      {
-        id: "2",
-        assetTag: "DESK-042",
-        name: "Standing Desk Pro",
-        type: "hardware",
-        serialNumber: "SDP-2024-042",
-        categoryName: "Furniture",
-        departmentName: "Operations",
-        locationName: "Building B - Floor 2",
-        assignedUserName: "Ansh",
-        status: "assigned",
-        purchaseDate: "2024-02-10",
-        createdAt: "2024-02-10",
-      },
-    ]
-
-    const found = assetId ? mockAssets.find((a) => a.id === assetId) : null
-    setAsset(found ?? null)
-    setLoading(false)
+    const load = async () => {
+      setLoading(true)
+      try {
+        if (!assetId) {
+          setAsset(null)
+          return
+        }
+        const fetched = await api.getById(assetId)
+        setAsset(fetched)
+      } catch (err) {
+        console.error("[v0] Failed to load asset:", err)
+        setAsset(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
   }, [assetId])
 
   const handleUpdateStatus = (newStatus: Asset["status"]) => {
@@ -113,8 +96,12 @@ export default function AssetDetailPage() {
     )
   }
 
-  // Build the asset URL to embed in QR
-  const assetUrl = typeof window !== "undefined" ? `${window.location.origin}/asset-detail?id=${asset.id}` : ""
+  // prefer public deployed base for URLs
+  const publicBase = typeof process !== "undefined" ? (process.env.NEXT_PUBLIC_BASE_URL as string | undefined) : undefined
+  const origin = typeof window !== "undefined" ? window.location.origin : ""
+  const baseForLink = publicBase || (origin && !origin.includes("localhost") ? origin : undefined)
+  const assetUrl = baseForLink ? `${baseForLink.replace(/\/$/, "")}/asset-detail?id=${asset.id}` : ""
+  const qrValue = assetUrl || JSON.stringify({ id: asset.id, assetTag: asset.assetTag, name: asset.name, serialNumber: asset.serialNumber || "" })
 
   const handleDownloadQR = () => {
     const container = document.querySelector(`#qr-${asset.id}`) as HTMLElement | null
@@ -178,7 +165,7 @@ export default function AssetDetailPage() {
 
           <div className="mt-4 flex items-center gap-4">
             <div id={`qr-${asset.id}`} className="rounded border bg-white p-2">
-              {assetUrl && <QRCode value={assetUrl} size={96} />}
+              {qrValue && <QRCode value={qrValue} size={96} />}
             </div>
             <Button size="sm" onClick={handleDownloadQR} className="gap-2">
               <Download className="h-4 w-4" />

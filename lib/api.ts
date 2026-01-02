@@ -4,6 +4,7 @@ import {
   addDoc,
   updateDoc,
   doc,
+  getDoc,
   getDocs,
   query,
   orderBy,
@@ -72,6 +73,48 @@ export const assetApi = {
     } catch (error) {
       console.error("[v0] ❌ Error fetching assets:", error)
       return mockApi.getAll()
+    }
+  },
+
+  // Fetch single asset by id
+  async getById(id: string): Promise<Asset | null> {
+    try {
+      const database = getDb()
+      if (!database) {
+        console.error("[v0] ❌ Firestore not ready, cannot get asset")
+        return null
+      }
+      console.log("[v0] 📥 Fetching asset by id from Firebase...", id)
+      const docRef = doc(database, ASSETS_COLLECTION, id)
+      const snapshot = await getDoc(docRef)
+      if (!snapshot.exists()) {
+        console.log("[v0] ⚠️ Asset not found:", id)
+        return null
+      }
+      const data = snapshot.data()
+      return {
+        id: snapshot.id,
+        assetTag: data.assetTag,
+        name: data.name,
+        type: data.type,
+        serialNumber: data.serialNumber,
+        categoryId: data.categoryId,
+        categoryName: data.categoryName,
+        departmentId: data.departmentId,
+        departmentName: data.departmentName,
+        locationId: data.locationId,
+        locationName: data.locationName,
+        assignedUserId: data.assignedUserId,
+        assignedUserName: data.assignedUserName,
+        status: data.status,
+        purchaseDate: data.purchaseDate,
+        warrantyExpiry: data.warrantyExpiry,
+        createdAt: convertTimestamp(data.createdAt),
+        assignmentHistory: data.assignmentHistory || [],
+      }
+    } catch (error) {
+      console.error("[v0] ❌ Error fetching asset by id:", error)
+      return null
     }
   },
 
